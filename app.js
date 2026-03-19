@@ -4,7 +4,10 @@ require('dotenv').config();
 
 const app = express();
 
-// Variables de entorno
+// Middleware para parsear JSON
+app.use(express.json());
+
+// Conexión a la base de datos usando variables de entorno
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -12,19 +15,29 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME
 });
 
+// Validación básica del parámetro
 app.get('/user', (req, res) => {
   const id = req.query.id;
 
-  // Query parametrizada (evita SQL Injection)
+  // Validación de entrada
+  if (!id || isNaN(id)) {
+    return res.status(400).send("Invalid user ID");
+  }
+
+  // Consulta parametrizada (previene SQL Injection)
   const query = "SELECT * FROM users WHERE id = ?";
 
   db.execute(query, [id], (err, result) => {
-    if (err) return res.status(500).send("Error");
-    res.send(result);
+    if (err) {
+      console.error(err);
+      return res.status(500).send("Database error");
+    }
+
+    res.json(result);
   });
 });
 
-// Puerto dinámico
+// Puerto desde variable de entorno
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
